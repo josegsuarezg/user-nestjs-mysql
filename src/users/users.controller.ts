@@ -4,6 +4,7 @@ import { User } from './users.entity';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateResult } from 'typeorm';
+import { CreateProfileDto } from './dto/create-profile.dto';
 
 @Controller('users')
 export class UsersController {
@@ -32,5 +33,10 @@ export class UsersController {
   @Delete(':id')
   deleteUser(@Param('id', ParseIntPipe) id: number) {
   return this.usersService.deleteUser(id)}
+  
+  @Post(':id/profile')
+  createProfile(@Param('id', ParseIntPipe) id:number, @Body() profile: CreateProfileDto) {
+    return this.usersService.createProfile(id, profile)
+  }
 
 }
