@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DeleteResult, Repository, UpdateResult } from 'typeorm';
 import { User } from './users.entity';
 import {CreateUserDto} from './dto/create-user.dto'
+import { UpdateUserDto } from './dto/update-user.dto';
 
 
 @Injectable()
@@ -12,22 +13,58 @@ export class UsersService {
     private usersRepository: Repository<User>,
   ) {}
 
-  getUsers() {
+  getUsers() : Promise<User[]> {
     return this.usersRepository.find();
   }
 
-  getUser(id: number) {
-    return this.usersRepository.findOne({ 
+  async getUser(id: number) : Promise<User | HttpException> {
+    const userFound = await this.usersRepository.findOne({ 
       where: {id} });
+      
+    if (!userFound) {
+      return new HttpException('User not found', HttpStatus.NOT_FOUND)
+    }
+    
+    return userFound;
   }
   
-  createUser(user: CreateUserDto){
+  async createUser(user: CreateUserDto): Promise<User | HttpException>  {
+    const userFound = await this.usersRepository.findOne({
+      where: {
+        username : user.username
+        }
+      });
+    
+    if(userFound) {
+      return new HttpException(`User ${user.username} already exists`, HttpStatus.CONFLICT);
+    }
+    
     const newUser = this.usersRepository.create(user);
     return this.usersRepository.save(newUser)
   }
 
-  deleteUser(id: number) {
-    return this.usersRepository.delete({id});
+  async updateUser( id: number, user: UpdateUserDto): Promise <HttpException | (User & UpdateUserDto)> {
+    
+    const userFound = await this.usersRepository.findOne({where:{id}});
+    
+    if(!userFound) {
+      return new HttpException('User not found', HttpStatus.NOT_FOUND)
+    }
+    
+    const updateUser = Object.assign(userFound, user)
+    
+    return this.usersRepository.save(updateUser);
+  }
+
+  async deleteUser(id: number) : Promise<DeleteResult | HttpException> {
+    const result = await this.usersRepository.delete({id});
+    
+    if(result.affected === 0) {
+      return new HttpException(`User not found`, HttpStatus.NOT_FOUND);
+    }
+    
+    return result;
+    
   }
 }
 
